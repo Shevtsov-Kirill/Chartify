@@ -100,18 +100,18 @@ namespace Chartify{
                     s.draw(horizontal, 2, sf::Lines);
                 }
             }
+            sf::Color line_c = axes_.Data();
             if(flags_ & Flag::ZERO_XLINE){
-                sf::Color line_c = axes_.Data();
                 std::size_t y = profile_->Height() / 2;
                 sf::Vertex line[] = {sf::Vertex(sf::Vector2f(0, float(y)), line_c), sf::Vertex(sf::Vector2f(float(profile_->Width()), float(y)), line_c)};
                 s.draw(line, 2, sf::Lines);
             }
             if(flags_ & Flag::ZERO_YLINE){
-                sf::Color line_color = axes_.Data();
                 int x_zero = profile_->Width() / 2;
-                sf::Vertex line[] = {sf::Vertex(sf::Vector2f(float(x_zero), 0), line_color), sf::Vertex(sf::Vector2f(float(x_zero), float(profile_->Height())), line_color)};
+                sf::Vertex line[] = {sf::Vertex(sf::Vector2f(float(x_zero), 0), line_c), sf::Vertex(sf::Vector2f(float(x_zero), float(profile_->Height())), line_c)};
                 s.draw(line, 2, sf::Lines);
             }
+            return;
         }
         void Show() {
             while (profile_->Profile().isOpen()) {
@@ -125,6 +125,7 @@ namespace Chartify{
                 Render();
                 profile_->Profile().display();
             }
+            return;
         }
         virtual ~Canvas() = default;
     };
