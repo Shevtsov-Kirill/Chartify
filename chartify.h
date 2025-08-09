@@ -8,7 +8,7 @@ namespace Chartify{
         static constexpr int GRID_PERIOD = 20;
     };
     enum Flag{
-        USE_GRID = 1 << 0, ZERO_XLINE = 1 << 1, ZERO_YLINE = 1 << 2
+        GRID = 1 << 0, AXES = 1 << 1
     };
     class Color{
         uint8_t alpha_;
@@ -89,27 +89,26 @@ namespace Chartify{
         void Render(){
             sf::RenderWindow& s = profile_->Profile();
             s.clear(fone_.Data());
-            if(flags_ & Flag::USE_GRID){
+            if(flags_ & Flag::GRID){
                 sf::Color grid_c = grid_.Data();
                 for(int x = 0; x < profile_->Width(); x += Constant::GRID_PERIOD){
-                sf::Vertex vertical[] = {sf::Vertex(sf::Vector2f(float(x), 0), grid_c), sf::Vertex(sf::Vector2f(float(x), float(profile_->Height())), grid_c)};
-                s.draw(vertical, 2, sf::Lines);
+                    sf::Vertex vertical[] = {sf::Vertex(sf::Vector2f(float(x), 0), grid_c), sf::Vertex(sf::Vector2f(float(x), float(profile_->Height())), grid_c)};
+                    s.draw(vertical, 2, sf::Lines);
                 }
                 for(int y = 0; y < profile_->Height(); y += Constant::GRID_PERIOD){
                     sf::Vertex horizontal[] = {sf::Vertex(sf::Vector2f(0, float(y)), grid_c), sf::Vertex(sf::Vector2f(profile_->Width(), float(y)), grid_c)};
                     s.draw(horizontal, 2, sf::Lines);
                 }
             }
-            sf::Color line_c = axes_.Data();
-            if(flags_ & Flag::ZERO_XLINE){
-                std::size_t y = profile_->Height() / 2;
-                sf::Vertex line[] = {sf::Vertex(sf::Vector2f(0, float(y)), line_c), sf::Vertex(sf::Vector2f(float(profile_->Width()), float(y)), line_c)};
-                s.draw(line, 2, sf::Lines);
-            }
-            if(flags_ & Flag::ZERO_YLINE){
-                int x_zero = profile_->Width() / 2;
-                sf::Vertex line[] = {sf::Vertex(sf::Vector2f(float(x_zero), 0), line_c), sf::Vertex(sf::Vector2f(float(x_zero), float(profile_->Height())), line_c)};
-                s.draw(line, 2, sf::Lines);
+            if(flags_ & Flag::AXES){
+                sf::Color line_c = axes_.Data();
+                int y = profile_->Height() / 2, x = profile_->Width() / 2;
+
+                sf::Vertex xline[] = {sf::Vertex(sf::Vector2f(0, float(y)), line_c), sf::Vertex(sf::Vector2f(float(profile_->Width()), float(y)), line_c)};
+                s.draw(xline, 2, sf::Lines);
+
+                sf::Vertex yline[] = {sf::Vertex(sf::Vector2f(float(x), 0), line_c), sf::Vertex(sf::Vector2f(float(x), float(profile_->Height())), line_c)};
+                s.draw(yline, 2, sf::Lines);
             }
             return;
         }
