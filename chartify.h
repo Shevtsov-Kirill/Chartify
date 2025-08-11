@@ -2,12 +2,13 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <vector>
+#include <iterator>
 namespace Chartify{
     struct Default{
         static inline unsigned int WIDTH = 1000, HEIGHT = 500;
     };
     enum Flag{
-        GRID = 1 << 0, AXES = 1 << 1, CURVE = 1 << 2
+        GRID = 1 << 0, AXES = 1 << 1
     };
     class Color{
         uint8_t alpha_;
@@ -26,6 +27,14 @@ namespace Chartify{
             if(alpha > 255 || alpha < 0){
                 throw std::invalid_argument("Alpha must be value from 0 to 255!");
             }
+        }
+        Color(const Color& o) : alpha_(o.alpha_), color_(o.color_){}
+        Color& operator=(const Color& o){
+            if(this != &o){
+                alpha_ = o.alpha_;
+                color_ = o.color_;
+            }
+            return *this;
         }
         static std::vector<uint8_t> White() {
             return std::vector<uint8_t>{255, 255, 255};
@@ -64,40 +73,70 @@ namespace Chartify{
             return;
         }
         const sf::String& Title() const {return title_;}
-        sf::Vector2u& ActualData(){return sizes_;}
+        const sf::Vector2u& Data() const {return sizes_;}
         sf::RenderWindow& Profile(){return profile_;}
         virtual ~RenderProfile() = default;
     };
     class Canvas{
-        std::vector<double> u_, v_;
+        std::vector<double> x_, y_;
         std::unique_ptr<RenderProfile> profile_;
-        Color fone_, grid_, axes_;
+        Color fone_, grid_, axes_, plot_;
         unsigned int flag_;
     public:
-        Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag = Flag::GRID | Flag::AXES) :
+        Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) :
         profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
-        void Render(){
-            sf::RenderWindow& s = profile_->Profile();
-            s.clear(fone_.Data());
-            s.display();
+        void Plot(const std::vector<double>& x, const std::vector<double>& y, Color color = Color({0, 0, 255}, 255)){
+            plot_ = color;
+            x_.resize(x.size()), y_.resize(y.size());
+            x_ = x;
+            y_ = y;
+            if(x.size() != y.size() || x.empty() || y.empty()){
+                throw std::invalid_argument("Invalid data vectors for plot function!");
+            }
+            std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator> rg_x, rg_y;
+            rg_x = std::minmax_element(x_.begin(), x_.end());
+            rg_y = std::minmax_element(y_.begin(), y_.end());
+            std::pair<double, double> omega;
+            omega.first = *rg_x.second - *rg_x.first, omega.second = *rg_y.second - *rg_y.first;
+            std::vector<sf::Vertex> plot;
+            for(std::size_t i = 0; i < x.size(); ++i){
+                float scr_x = ((x[i] - *rg_x.first) / (omega.first)) * profile_->Data().x;
+                float scr_y = profile_->Data().y - ((y[i] - *rg_y.first) / (omega.second)) * profile_->Data().y;
+                plot.emplace_back(sf::Vector2f(scr_x, scr_y), color.Data());
+            }
+            profile_->Profile().clear(fone_.Data());
+            if(flag_ & Flag::GRID){
+                for(int v = 0; v < profile_->Data().x; v += profile_->Data().x / 10){
+                    sf::Vertex vl[] = {sf::Vertex(sf::Vector2f(v, 0), grid_.Data()), sf::Vertex(sf::Vector2f(v, profile_->Data().y), grid_.Data())};
+                    profile_->Profile().draw(vl, 2, sf::LineStrip);
+                }
+                for(int h = 0; h < profile_->Data().y; h += profile_->Data().y / 10){
+                    sf::Vertex hl[] = {sf::Vertex(sf::Vector2f(0, h), grid_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x, h), grid_.Data())};
+                    profile_->Profile().draw(hl, 2, sf::LineStrip);
+                }
+            }
+            if(flag_ & Flag::AXES){
+                int x = profile_->Data().x / 2, y = profile_->Data().y / 2;
+                sf::Vertex xl[] = {sf::Vertex(sf::Vector2f(0, y), axes_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x, y), axes_.Data())};
+                sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, 0), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y), axes_.Data())};
+                profile_->Profile().draw(xl, 2, sf::LineStrip), profile_->Profile().draw(yl, 2, sf::LineStrip);
+            }
+            profile_->Profile().draw(plot.data(), plot.size(), sf::LineStrip);
+            profile_->Profile().display();
         }
-        void Show() {
-            while(profile_->Profile().isOpen()){
+        void Show(){
+            sf::RenderWindow& s = profile_->Profile();
+            while(s.isOpen()){
                 sf::Event event;
-                while(profile_->Profile().pollEvent(event)){
-                    if(event.type == sf::Event::Closed){
-                        profile_->Profile().close();
-                    } else if(event.type == sf::Event::Resized){
-                        unsigned int o_width = std::max(10u, event.size.width), o_height = std::max(10u, event.size.height);
-                        profile_->UpdateSizesData(o_width, o_height);
-                        sf::View f(sf::FloatRect(0, 0, o_width, o_height));
-                        profile_->Profile().setView(f);
+                while(s.pollEvent(event)){
+                    switch(event.type){
+                        case sf::Event::Closed:
+                            s.close();
+                            break;
                     }
                 }
-                profile_->Profile().clear(fone_.Data());
-                profile_->Profile().display();
+                Plot(x_, y_, plot_);
             }
-            return;
         }
         virtual ~Canvas() = default;
     };
