@@ -159,7 +159,6 @@ namespace Chartify{
                             float current_step = std::min(step, segment_len - drawn);
                             sf::Vector2f start = iu + div * drawn;
                             sf::Vector2f end = iu + div * (drawn + current_step);
-                            
                             if(dash_drawn) {
                                 sf::Vertex dash[] = {sf::Vertex(start, color.Data()), sf::Vertex(end, color.Data())};
                                 profile_->Profile().draw(dash, 2, sf::Lines);
@@ -192,6 +191,7 @@ namespace Chartify{
             }
             profile_->Profile().display();
         }
+        void Subplot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& colors, const std::vector<unsigned int>& flag){}
         void Show(){
             sf::RenderWindow& s = profile_->Profile();
             while(s.isOpen()){
