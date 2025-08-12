@@ -36,15 +36,30 @@ namespace Chartify{
             }
             return *this;
         }
-        static std::vector<uint8_t> White() {
-            return std::vector<uint8_t>{255, 255, 255};
+        static Color White(){
+            return Color({255, 255, 255}, 255);
         }
-        static std::vector<uint8_t> Black() {
-            return std::vector<uint8_t>{0, 0, 0};
+        static Color Black(){
+            return Color({0, 0, 0}, 255);
+        }
+        static Color Blue(){
+            return Color({0, 0, 255}, 255);
         }
         const sf::Color& Data() const {return color_;}
         const uint8_t& Alpha() const {return alpha_;}
         virtual ~Color() = default;
+    };
+    class Line{
+        Color color_;
+        uint8_t alpha_;
+    public:
+        Line() : color_(Color::Blue()), alpha_(255){}
+        Line(const Color& color, const uint8_t& alpha) : color_(color), alpha_(alpha){
+            if(alpha_ < 0 || alpha_ > 255){
+                throw std::invalid_argument("Invalid alpha value!");
+            }
+        }
+        const Color& Data() const {return color_;}
     };
     class RenderProfile{
         sf::String title_;
@@ -83,9 +98,8 @@ namespace Chartify{
         Color fone_, grid_, axes_, plot_;
         unsigned int flag_;
     public:
-        Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) :
-        profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
-        void Plot(const std::vector<double>& x, const std::vector<double>& y, Color color = Color({0, 0, 255}, 255)){
+        Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
+        void Plot(const std::vector<double>& x, const std::vector<double>& y, Color color = Color({0, 0, 255}, 255)) {
             plot_ = color;
             x_.resize(x.size()), y_.resize(y.size());
             x_ = x;
