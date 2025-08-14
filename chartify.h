@@ -48,6 +48,12 @@ namespace Chartify{
         static Color Blue(){
             return Color({0, 0, 255}, 255);
         }
+        static Color Red(){
+            return Color({255, 0, 0}, 255);
+        }
+        static Color Green(){
+            return Color({0, 255, 0}, 255);
+        }
         const sf::Color& Data() const {return color_;}
         const uint8_t& Alpha() const {return alpha_;}
         virtual ~Color() = default;
@@ -70,7 +76,7 @@ namespace Chartify{
         sf::RenderWindow profile_;
     public:
         RenderProfile(unsigned int width, unsigned int height, sf::String& title) : title_(title), sizes_(width, height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){
-            if(width < 960 || height < 480){
+            if(width < 900 || height < 400){
                 throw std::invalid_argument("Small scale!");
             }
             if(title_.isEmpty()){
@@ -97,7 +103,7 @@ namespace Chartify{
         std::vector<std::vector<double>> x_, y_;
         std::vector<Color> color_;
         std::vector<unsigned int> linestyle_;
-        // const float space_ = 10.0f;
+        const float space_ = 70.0f;
     public:
         Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
         void ConfigurePlot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& color, const std::vector<unsigned int>& linestyle){
@@ -119,19 +125,35 @@ namespace Chartify{
             for(std::size_t i = 0; i < x_.size(); ++i){
                 it_x.push_back(std::minmax_element(x_[i].begin(), x_[i].end()));
                 it_y.push_back(std::minmax_element(y_[i].begin(), y_[i].end()));
-                double u = *it_x[i].second - *it_x[i].first, v = *it_y[i].second - *it_y[i].first;
+                double u = *it_x[i].second - *it_x[i].first;
+                double v = *it_y[i].second - *it_y[i].first;
                 if(u == 0 || v == 0){
-                    u = 1, v = 1;
+                    u = 1;
+                    v = 1;
                 }
                 std::vector<sf::Vertex> chart;
                 for(std::size_t l = 0; l < x_[i].size(); ++l){
-                    float scr_x = ((x_[i][l] - *it_x[i].first) / (u)) * profile_->Data().x;
-                    float scr_y = (profile_->Data().y) - ((y_[i][l] - *it_y[i].first) / (v)) * (profile_->Data().y);
+                    float scr_x = space_ + ((x_[i][l] - *it_x[i].first) / (u)) * (profile_->Data().x - 2 * space_);
+                    float scr_y = space_ + (profile_->Data().y - 2 * space_) * (1 - ((y_[i][l] - *it_y[i].first) / (v)));
                     chart.emplace_back(sf::Vector2f(scr_x, scr_y), color_[i].Data());
                 }
                 switch(linestyle_[i]){
                     case Flag::Solid:{
-                        profile_->Profile().draw(chart.data(), chart.size(), sf::LineStrip);
+                        const float spacing = 0.5f;
+                        const float R = 1.0f;
+                        for(std::size_t q = 1; q < chart.size(); ++q){
+                            const sf::Vector2f& iu = chart[q - 1].position, iv = chart[q].position;
+                            sf::Vector2f div = iv - iu;
+                            float segment_len = std::sqrt(div.x * div.x + div.y * div.y);
+                            div /= segment_len;
+                            for(float s = 0.0f; s < segment_len; s += spacing){
+                                sf::Vector2f dx = iu + div * s;
+                                sf::CircleShape dot(R);
+                                dot.setPosition(dx);
+                                dot.setFillColor(color_[i].Data());
+                                profile_->Profile().draw(dot);
+                            }
+                        }
                     }
                     break;
                     case Flag::Dashed:{
@@ -160,8 +182,8 @@ namespace Chartify{
                     }
                     break;
                     case Flag::Dotted:{
-                        const float spacing = 8.0f;
-                        const float R = 1.5f;
+                        const float spacing = 7.0f;
+                        const float R = 2.0f;
                         for(std::size_t q = 1; q < chart.size(); ++q){
                             const sf::Vector2f& iu = chart[q - 1].position, iv = chart[q].position;
                             sf::Vector2f div = iv - iu;
@@ -180,19 +202,20 @@ namespace Chartify{
                 }
             }
             if(flag_ & Flag::Grid){
-                for(int v = 0; v < profile_->Data().x; v += profile_->Data().x / 10){
-                    sf::Vertex vl[] = {sf::Vertex(sf::Vector2f(v, 0), grid_.Data()), sf::Vertex(sf::Vector2f(v, profile_->Data().y), grid_.Data())};
+                for(int v = space_; v <= profile_->Data().x - space_; v += (profile_->Data().x - 2 * space_)/ 10){
+                    sf::Vertex vl[] = {sf::Vertex(sf::Vector2f(v, space_), grid_.Data()), sf::Vertex(sf::Vector2f(v, (profile_->Data().y - space_)), grid_.Data())};
                     profile_->Profile().draw(vl, 2, sf::LineStrip);
                 }
-                for(int h = 0; h < profile_->Data().y; h += profile_->Data().y / 10){
-                    sf::Vertex hl[] = {sf::Vertex(sf::Vector2f(0, h), grid_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x, h), grid_.Data())};
+                for(int h = space_; h <= profile_->Data().y - space_; h += (profile_->Data().y - 2 * space_)/ 10){
+                    sf::Vertex hl[] = {sf::Vertex(sf::Vector2f(space_, h), grid_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x - space_, h), grid_.Data())};
                     profile_->Profile().draw(hl, 2, sf::LineStrip);
                 }
             }
             if(flag_ & Flag::Axes){
-                int x = profile_->Data().x / 2, y = profile_->Data().y / 2;
-                sf::Vertex xl[] = {sf::Vertex(sf::Vector2f(0, y), axes_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x, y), axes_.Data())};
-                sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, 0), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y), axes_.Data())};
+                int x = profile_->Data().x / 2;
+                int y = profile_->Data().y / 2;
+                sf::Vertex xl[] = {sf::Vertex(sf::Vector2f(space_, y), axes_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x - space_, y), axes_.Data())};
+                sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, space_), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y - space_), axes_.Data())};
                 profile_->Profile().draw(xl, 2, sf::LineStrip), profile_->Profile().draw(yl, 2, sf::LineStrip);
             }
             profile_->Profile().display();
