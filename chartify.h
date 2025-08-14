@@ -5,11 +5,13 @@
 #include <iterator>
 #include <cmath>
 namespace Chartify{
-    struct Default{
+    struct Screen{
         static inline unsigned int WIDTH = 1000, HEIGHT = 500;
     };
-    enum Flag{
-        GRID = 1 << 0, AXES = 1 << 1, SOLID = 1 << 2, DASHED = 1 << 3, DOTTED = 1 << 4
+    struct Flag{
+        enum Style{
+            Grid = 1 << 0, Axes = 1 << 1, Solid = 1 << 2, Dashed = 1 << 3, Dotted = 1 << 4
+        };
     };
     class Color{
         uint8_t alpha_;
@@ -78,53 +80,104 @@ namespace Chartify{
                 throw std::invalid_argument("Invalid sizes for profile!");
             }
         }
-        RenderProfile() : title_(sf::String("Chartify Graph!")), sizes_(Default::WIDTH, Default::HEIGHT), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
+        RenderProfile() : title_(sf::String("Chartify Graph!")), sizes_(Screen::WIDTH, Screen::HEIGHT), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
         RenderProfile(const RenderProfile&) = delete;
         RenderProfile& operator=(const RenderProfile&) = delete;
         RenderProfile(RenderProfile&&) = default;
         RenderProfile& operator=(RenderProfile&&) = default;
-        void UpdateSizesData(unsigned int width, unsigned int height){
-            if(width == 0 || height == 0){
-                throw std::invalid_argument("Invalid size values!");
-            }
-            sizes_.x = width, sizes_.y = height;
-            profile_.setSize(sizes_);
-            return;
-        }
         const sf::String& Title() const {return title_;}
         const sf::Vector2u& Data() const {return sizes_;}
         sf::RenderWindow& Profile(){return profile_;}
         virtual ~RenderProfile() = default;
     };
     class Canvas{
-        std::vector<double> x_, y_;
         std::unique_ptr<RenderProfile> profile_;
-        Color fone_, grid_, axes_, plot_;
-        unsigned int flag_, linestyle_;
+        Color fone_, grid_, axes_;
+        unsigned int flag_;
+        std::vector<std::vector<double>> x_, y_;
+        std::vector<Color> color_;
+        std::vector<unsigned int> linestyle_;
     public:
         Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
-        void Plot(const std::vector<double>& x, const std::vector<double>& y, const Color& color, unsigned int linestyle = Flag::DOTTED) {
-            plot_ = color;
-            linestyle_ = linestyle;
-            x_.resize(x.size()), y_.resize(y.size());
-            x_ = x;
-            y_ = y;
-            if(x.size() != y.size() || x.empty() || y.empty()){
-                throw std::invalid_argument("Invalid data vectors for plot function!");
+        void ConfigurePlot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& color, const std::vector<unsigned int>& linestyle){
+            if(x.size() != y.size() || x.size() != color.size() || x.size() != linestyle.size()){
+                throw std::invalid_argument("Invalid vectors data");
             }
-            std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator> rg_x, rg_y;
-            rg_x = std::minmax_element(x_.begin(), x_.end());
-            rg_y = std::minmax_element(y_.begin(), y_.end());
-            std::pair<double, double> omega;
-            omega.first = *rg_x.second - *rg_x.first, omega.second = *rg_y.second - *rg_y.first;
-            std::vector<sf::Vertex> plot;
             for(std::size_t i = 0; i < x.size(); ++i){
-                float scr_x = ((x[i] - *rg_x.first) / (omega.first)) * profile_->Data().x;
-                float scr_y = profile_->Data().y - ((y[i] - *rg_y.first) / (omega.second)) * profile_->Data().y;
-                plot.emplace_back(sf::Vector2f(scr_x, scr_y), color.Data());
+                if(x[i].size() != y[i].size()){
+                    throw std::invalid_argument("Invalid vectors data");
+                }
+                x_.push_back(x[i]), y_.push_back(y[i]);
             }
+            color_ = color, linestyle_ = linestyle;
+        }
+        void Plot() const {
+            std::vector<std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator>> it_x, it_y;
             profile_->Profile().clear(fone_.Data());
-            if(flag_ & Flag::GRID){
+            for(std::size_t i = 0; i < x_.size(); ++i){
+                it_x.push_back(std::minmax_element(x_[i].begin(), x_[i].end()));
+                it_y.push_back(std::minmax_element(y_[i].begin(), y_[i].end()));
+                double u = *it_x[i].second - *it_x[i].first, v = *it_y[i].second - *it_y[i].first;
+                if(u == 0 || v == 0){
+                    u = 1, v = 1;
+                }
+                std::vector<sf::Vertex> chart;
+                for(std::size_t l = 0; l < x_[i].size(); ++l){
+                    float scr_x = ((x_[i][l] - *it_x[i].first) / (u)) * profile_->Data().x;
+                    float scr_y = (profile_->Data().y) - ((y_[i][l] - *it_y[i].first) / (v)) * (profile_->Data().y);
+                    chart.emplace_back(sf::Vector2f(scr_x, scr_y), color_[i].Data());
+                }
+                switch(linestyle_[i]){
+                    case Flag::Solid:{
+                        profile_->Profile().draw(chart.data(), chart.size(), sf::LineStrip);
+                    }
+                    break;
+                    case Flag::Dashed:{
+                        const float dash_len = 10.0f, gap_len = 5.0f;
+                        for(std::size_t k = 1; k < chart.size(); ++k){
+                            const sf::Vector2f& iu = chart[k - 1].position, iv = chart[k].position;
+                            sf::Vector2f div = iv - iu;
+                            float segment_len = std::sqrt(div.x * div.x + div.y * div.y);
+                            div /= segment_len;
+                            float drawn = 0;
+                            bool dash_drawn = true;
+                            while(drawn < segment_len) {
+                                float step = dash_drawn ? dash_len : gap_len;
+                                float current_step = std::min(step, segment_len - drawn);
+                                sf::Vector2f start = iu + div * drawn;
+                                sf::Vector2f end = iu + div * (drawn + current_step);
+                                if(dash_drawn) {
+                                    sf::Vertex dash[] = {sf::Vertex(start, color_[i].Data()), sf::Vertex(end, color_[i].Data())};
+                                    profile_->Profile().draw(dash, 2, sf::Lines);
+                                }
+                                
+                                drawn += current_step;
+                                dash_drawn = !dash_drawn;
+                            }
+                        }
+                    }
+                    break;
+                    case Flag::Dotted:{
+                        const float spacing = 8.0f;
+                        const float R = 1.5f;
+                        for(std::size_t q = 1; q < chart.size(); ++q){
+                            const sf::Vector2f& iu = chart[q - 1].position, iv = chart[q].position;
+                            sf::Vector2f div = iv - iu;
+                            float segment_len = std::sqrt(div.x * div.x + div.y * div.y);
+                            div /= segment_len;
+                            for(float s = 0.0f; s < segment_len; s += spacing){
+                                sf::Vector2f dx = iu + div * s;
+                                sf::CircleShape dot(R);
+                                dot.setPosition(dx);
+                                dot.setFillColor(color_[i].Data());
+                                profile_->Profile().draw(dot);
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            if(flag_ & Flag::Grid){
                 for(int v = 0; v < profile_->Data().x; v += profile_->Data().x / 10){
                     sf::Vertex vl[] = {sf::Vertex(sf::Vector2f(v, 0), grid_.Data()), sf::Vertex(sf::Vector2f(v, profile_->Data().y), grid_.Data())};
                     profile_->Profile().draw(vl, 2, sf::LineStrip);
@@ -134,65 +187,15 @@ namespace Chartify{
                     profile_->Profile().draw(hl, 2, sf::LineStrip);
                 }
             }
-            if(flag_ & Flag::AXES){
+            if(flag_ & Flag::Axes){
                 int x = profile_->Data().x / 2, y = profile_->Data().y / 2;
                 sf::Vertex xl[] = {sf::Vertex(sf::Vector2f(0, y), axes_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x, y), axes_.Data())};
                 sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, 0), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y), axes_.Data())};
                 profile_->Profile().draw(xl, 2, sf::LineStrip), profile_->Profile().draw(yl, 2, sf::LineStrip);
             }
-            switch(linestyle){
-                case Flag::SOLID:{
-                    profile_->Profile().draw(plot.data(), plot.size(), sf::LineStrip);
-                }
-                break;
-                case Flag::DASHED:{
-                    const float dash_len = 10, gap_len = 5;
-                    for(std::size_t i = 1; i < plot.size(); ++i){
-                        const sf::Vector2f& iu = plot[i - 1].position, iv = plot[i].position;
-                        sf::Vector2f div = iv - iu;
-                        float segment_len = std::sqrt(div.x * div.x + div.y * div.y);
-                        div /= segment_len;
-                        float drawn = 0;
-                        bool dash_drawn = true;
-                        while(drawn < segment_len) {
-                            float step = dash_drawn ? dash_len : gap_len;
-                            float current_step = std::min(step, segment_len - drawn);
-                            sf::Vector2f start = iu + div * drawn;
-                            sf::Vector2f end = iu + div * (drawn + current_step);
-                            if(dash_drawn) {
-                                sf::Vertex dash[] = {sf::Vertex(start, color.Data()), sf::Vertex(end, color.Data())};
-                                profile_->Profile().draw(dash, 2, sf::Lines);
-                            }
-                            
-                            drawn += current_step;
-                            dash_drawn = !dash_drawn;
-                        }
-                    }
-                }
-                break;
-                case Flag::DOTTED:{
-                    const float spacing = 10;
-                    const float R = 2.5;
-                    for(std::size_t i = 1; i < plot.size(); ++i){
-                        const sf::Vector2f& iu = plot[i - 1].position, iv = plot[i].position;
-                        sf::Vector2f div = iv - iu;
-                        float segment_len = std::sqrt(div.x * div.x + div.y * div.y);
-                        div /= segment_len;
-                        for(float s = 0.0f; s < segment_len; s += spacing){
-                            sf::Vector2f dot_position = iu + div * s;
-                            sf::CircleShape dot(R);
-                            dot.setPosition(dot_position);
-                            dot.setFillColor(color.Data());
-                            profile_->Profile().draw(dot);
-                        }
-                    }
-                }
-                break;
-            }
             profile_->Profile().display();
         }
-        void Subplot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& colors, const std::vector<unsigned int>& flag){}
-        void Show(){
+        void Show() const {
             sf::RenderWindow& s = profile_->Profile();
             while(s.isOpen()){
                 sf::Event event;
@@ -203,7 +206,7 @@ namespace Chartify{
                             break;
                     }
                 }
-                Plot(x_, y_, plot_, linestyle_);
+                Plot();
             }
         }
         virtual ~Canvas() = default;
