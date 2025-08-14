@@ -97,19 +97,21 @@ namespace Chartify{
         std::vector<std::vector<double>> x_, y_;
         std::vector<Color> color_;
         std::vector<unsigned int> linestyle_;
+        // const float space_ = 10.0f;
     public:
         Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
         void ConfigurePlot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& color, const std::vector<unsigned int>& linestyle){
-            if(x.size() != y.size() || x.size() != color.size() || x.size() != linestyle.size()){
-                throw std::invalid_argument("Invalid vectors data");
+            if(x.size() != y.size() || x.size() != color.size() || x.size() != linestyle.size() || x.empty() || y.empty()){
+                throw std::invalid_argument("Invalid vectors data: sizes are dif, or vectors are empty!");
             }
             for(std::size_t i = 0; i < x.size(); ++i){
-                if(x[i].size() != y[i].size()){
-                    throw std::invalid_argument("Invalid vectors data");
+                if(x[i].size() != y[i].size() || x[i].size() <= 2 || y[i].size() <= 2){
+                    throw std::invalid_argument("Invalid vectors data: to low to create graph or subvector sizes are dif!");
                 }
                 x_.push_back(x[i]), y_.push_back(y[i]);
             }
-            color_ = color, linestyle_ = linestyle;
+            color_ = color;
+            linestyle_ = linestyle;
         }
         void Plot() const {
             std::vector<std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator>> it_x, it_y;
