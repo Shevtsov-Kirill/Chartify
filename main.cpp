@@ -1,12 +1,16 @@
 #include "chartify.h"
 #include <iostream>
 #include <cmath>
-namespace chr = Chartify;
+#include <vector>
+using namespace Chartify;
 int main(){
-    sf::String title = "My Graph";
-    auto profile = std::make_unique<chr::RenderProfile>();
-    std::vector<double> f = {1.5, 2.23, std::sqrt(2)}, g = {sqrt(1.5), sqrt(2.23), sqrt(sqrt(2))};
-    Chartify::Canvas Graph(std::move(profile), chr::Color({255, 255, 255}, 255), chr::Color({23, 45, 67}, 67), chr::Color({89, 45, 67}, 255), chr::AXES | chr::GRID);
-    Graph.Plot(f, g, chr::Color({0,0,255}, 255));
-    Graph.Show();
+    sf::String title = "As Chartify!";
+    auto profile = std::make_unique<RenderProfile>(960, 480, title);
+    std::vector<std::vector<double>> f = {{1, 2}, {2, 3}}, g = {{2, 4}, {1, 12}};
+    std::vector<unsigned int> flag = {Flag::Dotted, Flag::Solid};
+    std::vector<Color> color = {Color({178, 173, 23}, 255), Color::Blue()};
+    Chartify::Canvas plt(std::move(profile), Color({0,0, 0}, 255), Color({100, 100, 100}, 67), Color({255, 255, 255}, 255), Flag::Axes | Flag::Grid);
+    plt.ConfigurePlot(f, g, color, flag);
+    plt.Plot();
+    plt.Show();
 }
