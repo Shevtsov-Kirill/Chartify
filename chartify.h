@@ -7,7 +7,7 @@
 namespace Chartify{
     struct Screen{
         enum Size{
-            Width = 1000, Height = 500
+            Width = 1200, Height = 600
         };
     };
     struct Flag{
@@ -81,9 +81,9 @@ namespace Chartify{
         sf::RenderWindow profile_;
     public:
         RenderProfile(unsigned int width, unsigned int height, const sf::String& title) : title_(title), sizes_(width, height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){
-            if(width < 900 || height < 400){
-                throw std::invalid_argument("Small scale!");
-            }
+            // if(width < 900 || height < 400){
+            //     throw std::invalid_argument("Small scale!");
+            // }
             if(title_.isEmpty()){
                 throw std::invalid_argument("Title is absented!");
             }
@@ -109,6 +109,9 @@ namespace Chartify{
         std::vector<Color> color_;
         std::vector<unsigned int> linestyle_;
         const float space_ = 70.0f;
+        const unsigned int fontsize_ = 18;
+        sf::Font font_;
+        sf::String title_;
     public:
         // Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
         Canvas() : profile_(std::make_unique<RenderProfile>(Screen::Width, Screen::Height, sf::String("As Chartify!"))), fone_(Color::White()), grid_(Color({Color({180, 180, 180}, 200)})),
@@ -231,7 +234,23 @@ namespace Chartify{
                 sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, space_), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y - space_), axes_.Data())};
                 profile_->Profile().draw(xl, 2, sf::LineStrip), profile_->Profile().draw(yl, 2, sf::LineStrip);
             }
+            if(!title_.isEmpty()){
+                sf::Text text(title_, font_, fontsize_);
+                sf::FloatRect text_bound = text.getGlobalBounds();
+                //Обработать входной заголовок, если больше 12 слов - делаем перенос, размеры заголовка не должны быть больше какого то числа
+                float xPos = (profile_->Data().x - text_bound.width) / 2;
+                text.setFillColor(Color::Black().Data());
+                text.setPosition(xPos, space_ / 2);
+                profile_->Profile().draw(text);
+            }
             profile_->Profile().display();
+        }
+        void Title(const sf::String& title) {
+            font_.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");
+            if(!font_.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf")){
+                throw std::invalid_argument("Font didn't been installed!");
+            }
+            title_ = title;
         }
         void Show() const {
             sf::RenderWindow& s = profile_->Profile();
