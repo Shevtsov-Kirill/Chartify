@@ -1,15 +1,15 @@
 #include "chartify.h"
-#include <iostream>
-#include <cmath>
 #include <vector>
 using namespace Chartify;
 int main(){
-    sf::String title = "As Chartify!";
-    auto profile = std::make_unique<RenderProfile>(960, 480, title);
-    std::vector<std::vector<double>> f = {{1, 2}, {2, 3}}, g = {{2, 4}, {1, 12}};
-    std::vector<unsigned int> flag = {Flag::Dotted, Flag::Solid};
-    std::vector<Color> color = {Color({178, 173, 23}, 255), Color::Blue()};
-    Chartify::Canvas plt(std::move(profile), Color({0,0, 0}, 255), Color({100, 100, 100}, 67), Color({255, 255, 255}, 255), Flag::Axes | Flag::Grid);
+    std::size_t data = 3, value = 40;
+    sf::String title = "I(R)";
+    Color back = Color::White(), grid = Color({180, 180, 180}, 200);
+    auto profile = std::make_unique<RenderProfile>(1200, 600, title);
+    std::vector<std::vector<double>> f = {{1, 2, 3}, {1, 2, 3}, {1, 2, 3}}, g = {{1, 1, 1}, {1, 9, 81}, {1, 8, 27}};
+    std::vector<unsigned int> flag = {Flag::Solid, Flag::Solid, Flag::Solid};
+    std::vector<Color> color = {Color::Blue(), Color::Red(), Color::Green()};
+    Chartify::Canvas plt(std::move(profile), back, grid, Color({20, 20, 20}, 255), Flag::Axes | Flag::Grid);
     plt.ConfigurePlot(f, g, color, flag);
     plt.Plot();
     plt.Show();
