@@ -6,7 +6,9 @@
 #include <cmath>
 namespace Chartify{
     struct Screen{
-        static inline unsigned int WIDTH = 1000, HEIGHT = 500;
+        enum Size{
+            Width = 1000, Height = 500
+        };
     };
     struct Flag{
         enum Style{
@@ -54,6 +56,9 @@ namespace Chartify{
         static Color Green(){
             return Color({0, 255, 0}, 255);
         }
+        static Color Orange(){
+            return Color({255, 165, 0}, 255);
+        }
         const sf::Color& Data() const {return color_;}
         const uint8_t& Alpha() const {return alpha_;}
         virtual ~Color() = default;
@@ -75,7 +80,7 @@ namespace Chartify{
         sf::Vector2u sizes_;
         sf::RenderWindow profile_;
     public:
-        RenderProfile(unsigned int width, unsigned int height, sf::String& title) : title_(title), sizes_(width, height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){
+        RenderProfile(unsigned int width, unsigned int height, const sf::String& title) : title_(title), sizes_(width, height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){
             if(width < 900 || height < 400){
                 throw std::invalid_argument("Small scale!");
             }
@@ -86,7 +91,7 @@ namespace Chartify{
                 throw std::invalid_argument("Invalid sizes for profile!");
             }
         }
-        RenderProfile() : title_(sf::String("Chartify Graph!")), sizes_(Screen::WIDTH, Screen::HEIGHT), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
+        RenderProfile() : title_(sf::String("As Chartify!")), sizes_(Screen::Width, Screen::Height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
         RenderProfile(const RenderProfile&) = delete;
         RenderProfile& operator=(const RenderProfile&) = delete;
         RenderProfile(RenderProfile&&) = default;
@@ -106,6 +111,8 @@ namespace Chartify{
         const float space_ = 70.0f;
     public:
         Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
+        Canvas() : profile_(std::make_unique<RenderProfile>(Screen::Width, Screen::Height, sf::String("As Chartify!"))), fone_(Color::White()), grid_(Color({Color({180, 180, 180}, 200)})),
+        axes_(Color::Black()), flag_(Flag::Axes | Flag::Grid){}
         void ConfigurePlot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& color, const std::vector<unsigned int>& linestyle){
             if(x.size() != y.size() || x.size() != color.size() || x.size() != linestyle.size() || x.empty() || y.empty()){
                 throw std::invalid_argument("Invalid vectors data: sizes are dif, or vectors are empty!");
@@ -157,7 +164,9 @@ namespace Chartify{
                     }
                     break;
                     case Flag::Dashed:{
-                        const float dash_len = 10.0f, gap_len = 5.0f;
+                        const float R = 1.0f;
+                        const float dash_len = 10.0f;
+                        const float gap_len = 5.0f;
                         for(std::size_t k = 1; k < chart.size(); ++k){
                             const sf::Vector2f& iu = chart[k - 1].position, iv = chart[k].position;
                             sf::Vector2f div = iv - iu;
@@ -171,10 +180,14 @@ namespace Chartify{
                                 sf::Vector2f start = iu + div * drawn;
                                 sf::Vector2f end = iu + div * (drawn + current_step);
                                 if(dash_drawn) {
-                                    sf::Vertex dash[] = {sf::Vertex(start, color_[i].Data()), sf::Vertex(end, color_[i].Data())};
-                                    profile_->Profile().draw(dash, 2, sf::Lines);
+                                    for(float s = 0; s < current_step; s += 0.5f) {
+                                        sf::Vector2f pos = iu + div * (drawn + s);
+                                        sf::CircleShape dot(R);
+                                        dot.setPosition(pos.x - R, pos.y - R);
+                                        dot.setFillColor(color_[i].Data());
+                                        profile_->Profile().draw(dot);
+                                    }
                                 }
-                                
                                 drawn += current_step;
                                 dash_drawn = !dash_drawn;
                             }
