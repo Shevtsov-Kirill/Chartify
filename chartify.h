@@ -91,7 +91,7 @@ namespace Chartify{
                 throw std::invalid_argument("Invalid sizes for profile!");
             }
         }
-        RenderProfile() : title_(sf::String("As Chartify!")), sizes_(Screen::Width, Screen::Height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
+        // RenderProfile() : title_(sf::String("As Chartify!")), sizes_(Screen::Width, Screen::Height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
         RenderProfile(const RenderProfile&) = delete;
         RenderProfile& operator=(const RenderProfile&) = delete;
         RenderProfile(RenderProfile&&) = default;
@@ -110,7 +110,7 @@ namespace Chartify{
         std::vector<unsigned int> linestyle_;
         const float space_ = 70.0f;
     public:
-        Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
+        // Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
         Canvas() : profile_(std::make_unique<RenderProfile>(Screen::Width, Screen::Height, sf::String("As Chartify!"))), fone_(Color::White()), grid_(Color({Color({180, 180, 180}, 200)})),
         axes_(Color::Black()), flag_(Flag::Axes | Flag::Grid){}
         void ConfigurePlot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& color, const std::vector<unsigned int>& linestyle){
