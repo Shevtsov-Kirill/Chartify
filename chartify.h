@@ -7,7 +7,7 @@
 namespace Chartify{
     struct Screen{
         enum Size{
-            Width = 1200, Height = 600
+            Width = 1200, Height = 500
         };
     };
     struct Flag{
@@ -41,24 +41,13 @@ namespace Chartify{
             }
             return *this;
         }
-        static Color White(){
-            return Color({255, 255, 255}, 255);
-        }
-        static Color Black(){
-            return Color({0, 0, 0}, 255);
-        }
-        static Color Blue(){
-            return Color({0, 0, 255}, 255);
-        }
-        static Color Red(){
-            return Color({255, 0, 0}, 255);
-        }
-        static Color Green(){
-            return Color({0, 255, 0}, 255);
-        }
-        static Color Orange(){
-            return Color({255, 165, 0}, 255);
-        }
+        static Color White(){return Color({255, 255, 255}, 255);}
+        static Color Black(){return Color({0, 0, 0}, 255);}
+        static Color Blue(){return Color({0, 0, 255}, 255);}
+        static Color Red(){return Color({255, 0, 0}, 255);}
+        static Color Green(){return Color({0, 255, 0}, 255);}
+        static Color Orange(){return Color({255, 165, 0}, 255);}
+        static Color Violet(){return Color({148, 0, 211}, 255);}
         const sf::Color& Data() const {return color_;}
         const uint8_t& Alpha() const {return alpha_;}
         virtual ~Color() = default;
