@@ -70,9 +70,6 @@ namespace Chartify{
         sf::RenderWindow profile_;
     public:
         RenderProfile(unsigned int width, unsigned int height, const sf::String& title) : title_(title), sizes_(width, height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){
-            // if(width < 900 || height < 400){
-            //     throw std::invalid_argument("Small scale!");
-            // }
             if(title_.isEmpty()){
                 throw std::invalid_argument("Title is absented!");
             }
@@ -80,7 +77,6 @@ namespace Chartify{
                 throw std::invalid_argument("Invalid sizes for profile!");
             }
         }
-        // RenderProfile() : title_(sf::String("As Chartify!")), sizes_(Screen::Width, Screen::Height), profile_(sf::VideoMode(sizes_.x, sizes_.y), title_){}
         RenderProfile(const RenderProfile&) = delete;
         RenderProfile& operator=(const RenderProfile&) = delete;
         RenderProfile(RenderProfile&&) = default;
@@ -98,20 +94,19 @@ namespace Chartify{
         std::vector<Color> color_;
         std::vector<unsigned int> linestyle_;
         const float space_ = 70.0f;
-        const unsigned int fontsize_ = 20;
+        const unsigned int fontsize_ = 18;
         sf::Font font_;
         sf::String title_;
     public:
-        // Canvas(std::unique_ptr<RenderProfile> profile, Color fone, Color grid, Color axes, unsigned int flag) : profile_(std::move(profile)), fone_(fone), grid_(grid), axes_(axes), flag_(flag){}
         Canvas() : profile_(std::make_unique<RenderProfile>(Screen::Width, Screen::Height, sf::String("As Chartify!"))), fone_(Color::White()), grid_(Color({Color({180, 180, 180}, 200)})),
         axes_(Color::Black()), flag_(Flag::Axes | Flag::Grid){}
         void ConfigurePlot(const std::vector<std::vector<double>>& x, const std::vector<std::vector<double>>& y, const std::vector<Color>& color, const std::vector<unsigned int>& linestyle){
             if(x.size() != y.size() || x.size() != color.size() || x.size() != linestyle.size() || x.empty() || y.empty()){
-                throw std::invalid_argument("Invalid vectors data: sizes are dif, or vectors are empty!");
+                throw std::invalid_argument("Invalid vectors data: sizes are different, or vectors are empty!");
             }
             for(std::size_t i = 0; i < x.size(); ++i){
                 if(x[i].size() != y[i].size() || x[i].size() <= 2 || y[i].size() <= 2){
-                    throw std::invalid_argument("Invalid vectors data: to low to create graph or subvector sizes are dif!");
+                    throw std::invalid_argument("Invalid vectors data: to low to create graph or subvector sizes are different!");
                 }
                 x_.push_back(x[i]), y_.push_back(y[i]);
             }
@@ -211,27 +206,30 @@ namespace Chartify{
                 for(int v = space_; v <= profile_->Data().x - space_; v += (profile_->Data().x - 2 * space_)/ 10){
                     sf::Vertex vl[] = {sf::Vertex(sf::Vector2f(v, space_), grid_.Data()), sf::Vertex(sf::Vector2f(v, (profile_->Data().y - space_)), grid_.Data())};
                     profile_->Profile().draw(vl, 2, sf::LineStrip);
+                    
+                    float x_value = *it_x[0].first + ((v - space_) / (profile_->Data().x - 2 * space_)) * (*it_x[0].second - *it_x[0].first);
+                    sf::Text x_label(std::to_string(x_value).substr(0, 4), font_, fontsize_ - 4);
+                    x_label.setFillColor(axes_.Data());
+                    x_label.setPosition(v - 10, profile_->Data().y - space_ + 5);
+                    profile_->Profile().draw(x_label);
                 }
                 for(int h = space_; h <= profile_->Data().y - space_; h += (profile_->Data().y - 2 * space_)/ 10){
                     sf::Vertex hl[] = {sf::Vertex(sf::Vector2f(space_, h), grid_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x - space_, h), grid_.Data())};
                     profile_->Profile().draw(hl, 2, sf::LineStrip);
+                    
+                    float y_value = *it_y[0].second - ((h - space_) / (profile_->Data().y - 2 * space_)) * (*it_y[0].second - *it_y[0].first);
+                    sf::Text y_label(std::to_string(y_value).substr(0, 4), font_, fontsize_ - 4);
+                    y_label.setFillColor(axes_.Data());
+                    y_label.setPosition(space_ - 35, h - 10);
+                    profile_->Profile().draw(y_label);
                 }
             }
             if(flag_ & Flag::Axes){
-                const float R = 1.0f;
-                const float spacing = 0.5f;
-                for(float y = space_; y < profile_->Data().y - space_; y += spacing){
-                    sf::CircleShape dx(R);
-                    dx.setFillColor(Color::Black().Data());
-                    dx.setPosition(space_, y);
-                    profile_->Profile().draw(dx);
-                }
-                for(float x = space_; x < profile_->Data().x - space_; x += spacing){
-                    sf::CircleShape dy(R);
-                    dy.setFillColor(Color::Black().Data());
-                    dy.setPosition(x, profile_->Data().y - space_);
-                    profile_->Profile().draw(dy);
-                }
+                int x = space_;
+                int y = profile_->Data().y - space_;
+                sf::Vertex xl[] = {sf::Vertex(sf::Vector2f(space_, y), axes_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x - space_, y), axes_.Data())};
+                sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, space_), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y - space_), axes_.Data())};
+                profile_->Profile().draw(xl, 2, sf::LineStrip), profile_->Profile().draw(yl, 2, sf::LineStrip);
             }
             if(!title_.isEmpty()){
                 if(title_.getSize() > profile_->Data().x){
@@ -247,8 +245,8 @@ namespace Chartify{
             profile_->Profile().display();
         }
         void Title(const sf::String& title) {
-            font_.loadFromFile("Font/Ubuntu-Regular.ttf");
-            if(!font_.loadFromFile("Font/Ubuntu-Regular.ttf")){
+            font_.loadFromFile("Font/font.ttf");
+            if(!font_.loadFromFile("Font/font.ttf")){
                 throw std::invalid_argument("Font didn't been installed!");
             }
             title_ = title;
