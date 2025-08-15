@@ -98,7 +98,7 @@ namespace Chartify{
         std::vector<Color> color_;
         std::vector<unsigned int> linestyle_;
         const float space_ = 70.0f;
-        const unsigned int fontsize_ = 18;
+        const unsigned int fontsize_ = 20;
         sf::Font font_;
         sf::String title_;
     public:
@@ -119,6 +119,7 @@ namespace Chartify{
             linestyle_ = linestyle;
         }
         void Plot() const {
+            const float extra_space = 20.0f;
             std::vector<std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator>> it_x, it_y;
             profile_->Profile().clear(fone_.Data());
             for(std::size_t i = 0; i < x_.size(); ++i){
@@ -132,8 +133,8 @@ namespace Chartify{
                 }
                 std::vector<sf::Vertex> chart;
                 for(std::size_t l = 0; l < x_[i].size(); ++l){
-                    float scr_x = space_ + ((x_[i][l] - *it_x[i].first) / (u)) * (profile_->Data().x - 2 * space_);
-                    float scr_y = space_ + (profile_->Data().y - 2 * space_) * (1 - ((y_[i][l] - *it_y[i].first) / (v)));
+                    float scr_x = space_ + extra_space + ((x_[i][l] - *it_x[i].first) / (u)) * (profile_->Data().x - 2 * space_ - extra_space * 2);
+                    float scr_y = space_ + extra_space + (profile_->Data().y - 2 * space_ - 2 * extra_space) * (1 - ((y_[i][l] - *it_y[i].first) / (v)));
                     chart.emplace_back(sf::Vector2f(scr_x, scr_y), color_[i].Data());
                 }
                 switch(linestyle_[i]){
@@ -217,16 +218,27 @@ namespace Chartify{
                 }
             }
             if(flag_ & Flag::Axes){
-                int x = profile_->Data().x / 2;
-                int y = profile_->Data().y / 2;
-                sf::Vertex xl[] = {sf::Vertex(sf::Vector2f(space_, y), axes_.Data()), sf::Vertex(sf::Vector2f(profile_->Data().x - space_, y), axes_.Data())};
-                sf::Vertex yl[] = {sf::Vertex(sf::Vector2f(x, space_), axes_.Data()), sf::Vertex(sf::Vector2f(x, profile_->Data().y - space_), axes_.Data())};
-                profile_->Profile().draw(xl, 2, sf::LineStrip), profile_->Profile().draw(yl, 2, sf::LineStrip);
+                const float R = 1.0f;
+                const float spacing = 0.5f;
+                for(float y = space_; y < profile_->Data().y - space_; y += spacing){
+                    sf::CircleShape dx(R);
+                    dx.setFillColor(Color::Black().Data());
+                    dx.setPosition(space_, y);
+                    profile_->Profile().draw(dx);
+                }
+                for(float x = space_; x < profile_->Data().x - space_; x += spacing){
+                    sf::CircleShape dy(R);
+                    dy.setFillColor(Color::Black().Data());
+                    dy.setPosition(x, profile_->Data().y - space_);
+                    profile_->Profile().draw(dy);
+                }
             }
             if(!title_.isEmpty()){
+                if(title_.getSize() > profile_->Data().x){
+                    throw std::invalid_argument("Too low signs to make title!");
+                }
                 sf::Text text(title_, font_, fontsize_);
                 sf::FloatRect text_bound = text.getGlobalBounds();
-                //Обработать входной заголовок, если больше 12 слов - делаем перенос, размеры заголовка не должны быть больше какого то числа
                 float xPos = (profile_->Data().x - text_bound.width) / 2;
                 text.setFillColor(Color::Black().Data());
                 text.setPosition(xPos, space_ / 2);
@@ -235,8 +247,8 @@ namespace Chartify{
             profile_->Profile().display();
         }
         void Title(const sf::String& title) {
-            font_.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");
-            if(!font_.loadFromFile("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf")){
+            font_.loadFromFile("Font/Ubuntu-Regular.ttf");
+            if(!font_.loadFromFile("Font/Ubuntu-Regular.ttf")){
                 throw std::invalid_argument("Font didn't been installed!");
             }
             title_ = title;
