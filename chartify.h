@@ -7,7 +7,7 @@
 namespace Chartify{
     struct Screen{
         enum Size{
-            Width = 1200, Height = 500
+            Width = 1200, Height = 600
         };
     };
     struct Flag{
@@ -242,6 +242,10 @@ namespace Chartify{
                 text.setPosition(xPos, space_ / 2);
                 profile_->Profile().draw(text);
             }
+            sf::Text c(sf::String("(x, y) = "), font_, fontsize_);
+            c.setFillColor(Color::Black().Data());
+            c.setPosition(profile_->Data().x - 2.5 * space_, space_ / 2);
+            profile_->Profile().draw(c);
             profile_->Profile().display();
         }
         void Title(const sf::String& title) {
